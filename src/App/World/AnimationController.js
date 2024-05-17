@@ -9,8 +9,6 @@ export default class AnimationController {
         this.scene = this.app.scene;
         this.avatar = this.app.world.character.avatar;
 
-        inputStore.subscribe((input) => this.onInput(input))
-
         this.instantiatedAnimations()
     }
 
@@ -24,7 +22,7 @@ export default class AnimationController {
             this.animations.set(clip.name, this.mixer.clipAction(clip))
         })
 
-        this.currentAction = this.animations.get('idle')
+        this.currentAction = this.animations.get('play')
         this.currentAction.play()
     }
 
@@ -33,27 +31,11 @@ export default class AnimationController {
         const action = this.animations.get(name)
         action.reset()
         action.play()
-        action.crossFadeFrom(this.currentAction, 0.2)
 
         this.currentAction = action
-    }
-
-    onInput(input) {
-        if(
-            input.forward ||
-            input.backward ||
-            input.left ||
-            input.right
-        ) {
-            this.playAnimation('run')
-        } else {
-            this.playAnimation('idle')
-
-        }
     }
 
     loop(deltaTime) {
         this.mixer.update(deltaTime)
     } 
-
-}
+    }
