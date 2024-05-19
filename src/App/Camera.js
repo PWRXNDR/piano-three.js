@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { sizesStore } from './Utils/Store.js';
+import { AudioListener } from 'three';
 
 
 import App from './App.js'
@@ -15,6 +16,9 @@ export default class Camera{
         this.sizes = this.sizesStore.getState()
 
         this.setInstance()
+        this.listener = new AudioListener();
+        this.instance.add(this.listener);
+
         this.setControls()
         this.setResizeLister()
     }

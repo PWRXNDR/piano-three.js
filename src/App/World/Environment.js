@@ -1,31 +1,110 @@
 import * as THREE from "three";
 import App from "../App.js";
 import assetStore from "../Utils/AssetStore.js";
+import { PositionalAudio } from 'three';
+import { EffectComposer } from "three/examples/jsm/postprocessing/effectcomposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+
 
 export default class Environment {
     constructor() {
         this.app = new App();
+        if (!this.app.renderer) {
+            console.error('Renderer is not initialized');
+            return;
+        }
         this.scene = this.app.scene;
         this.physics = this.app.world.physics;
         this.pane = this.app.gui.pane;
 
         this.assetStore = assetStore.getState()
         this.environment = this.assetStore.loadedAssets.environment
+        this.audioListener = new THREE.AudioListener();
+        // Ensure the camera instance is available and properly initialized
+        if (this.app.camera && this.app.camera.instance) {
+            this.app.camera.instance.add(this.audioListener);
+        } else {
+            console.error("Camera instance is not available for adding AudioListener");
+        }
 
         this.loadEnvironment();
         this.addLights();
         this.addSpotlight();
         this.addFog();
+        this.setupAudio(false);
+    }
+
+
+    setupAudio(play = false) {
+        const pianoMusic = new PositionalAudio(this.audioListener);
+        const audioBuffer = this.assetStore.loadedAssets.pianoMusic;
+        if (!audioBuffer) {
+            console.error('Audio buffer is not loaded');
+            return;
+        }
+        pianoMusic.setBuffer(audioBuffer);
+        pianoMusic.setRefDistance(20);
+        pianoMusic.setLoop(true);
+        pianoMusic.setVolume(0.5);
+
+        this.pianoMusic = pianoMusic;
+
+        const piano = this.scene.getObjectByName('Grand_piano');
+        if (piano) {
+            piano.add(pianoMusic);
+            if (play) {
+                pianoMusic.play();
+            }
+        } else {
+            console.error('Piano object not found in the scene');
+        }
+    }
+
+    enableAudio() {
+        if (this.audioListener.context.state === 'suspended') {
+            this.audioListener.context.resume().then(() => {
+                console.log("AudioContext resumed!");
+                this.pianoMusic.play();
+            }).catch(error => {
+                console.error("Error resuming audio context:", error);
+            });
+        } else if (this.pianoMusic && !this.pianoMusic.isPlaying) {
+            this.pianoMusic.play();
+        }
+    }
+
+    toggleAudio() {
+        if (this.pianoMusic.isPlaying) {
+            this.pianoMusic.pause();
+        } else {
+            this.enableAudio(); // Reuses the enableAudio method to play if it was paused
+        }
     }
 
     loadEnvironment() {
         // load environment here
         const environmentScene = this.environment.scene;
         this.scene.add(environmentScene);
+        let allObjects = []; // Array to store names of all objects
 
-        // Traverse and log names
-        environmentScene.traverse((child) => {
-            console.log(child.name);
+        //environmentScene.traverse((child) => {
+          //  console.log(child.name);
+          //  allObjects.push(child.name);
+        //});
+
+        const godRaysMaterial = new THREE.MeshBasicMaterial({
+            color: 0xfffb70,
+            transparent: true,
+            opacity: 0.01,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        environmentScene.traverse((object) => {
+            if (object.name === 'god_rays') {
+                object.material = godRaysMaterial;
+            }
         });
 
         const cubeTextureLoader = new THREE.CubeTextureLoader();
@@ -193,14 +272,13 @@ export default class Environment {
 
     }
 
-
     addLights() {
         // Subdued ambient light
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
         this.scene.add(ambientLight);
 
         // Directional light for general lighting with soft intensity
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.01);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0);
         directionalLight.position.set(1, 1, 1);
         directionalLight.castShadow = true;
         directionalLight.shadow.mapSize.width = 2048;
@@ -210,13 +288,13 @@ export default class Environment {
         this.scene.add(directionalLight);
 
         // Optional: Additional point lights or soft spotlights
-        const pointLight = new THREE.PointLight(0xffffff, 0.1, 100, 2);
+        const pointLight = new THREE.PointLight(0xfffb70, 0.1, 100, 1);
         pointLight.position.set(-10, 10, -10);
         this.scene.add(pointLight);
     }
 
     addSpotlight() {
-        const spotlight = new THREE.SpotLight(0x5f99f5, 1, 0, Math.PI / 8, 0.5, 2);
+        const spotlight = new THREE.SpotLight(0xfffb70, 0.5, 0, Math.PI / 8, 0.5, 2);
         spotlight.position.set(10, 60, 10); // Adjust as necessary
         spotlight.target.position.set(10, 0, 10);
         this.scene.add(spotlight.target);
@@ -230,8 +308,9 @@ export default class Environment {
 
     addFog() {
         const color = 0x63a9ff;  // Choose a color that blends well with your scene
-        const density = 0.01;    // Control the density, smaller values for lighter fog
+        const density = 0.001;    // Control the density, smaller values for lighter fog
 
         this.scene.fog = new THREE.FogExp2(color, density);
     }
+
 }

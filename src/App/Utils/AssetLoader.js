@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
+import { AudioLoader } from 'three';
 
 import assetStore from './AssetStore.js'
 
@@ -10,6 +11,7 @@ export default class AssetLoader {
         this.assetStore = assetStore.getState()
         this.assetsToLoad = this.assetStore.assetsToLoad
         this.addLoadedAsset = this.assetStore.addLoadedAsset
+        this.audioLoader = new AudioLoader();
 
         this.instantiateLoaders()
         this.startLoading()
@@ -34,6 +36,11 @@ export default class AssetLoader {
                 this.gltfLoader.load(asset.path, (loadedAsset)=>{
                     this.addLoadedAsset(loadedAsset, asset.id)
                 })
+            }
+            if (asset.type === 'audio') {
+                this.audioLoader.load(asset.path, (audioBuffer) => {
+                    this.addLoadedAsset(audioBuffer, asset.id);
+                });
             }
         })
     }

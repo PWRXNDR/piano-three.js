@@ -10,6 +10,11 @@ const assetsToLoad = [
         id: 'avatar',
         path: '/models/avatar.glb',
         type: 'model'
+    },
+    {
+        id: 'pianoMusic',
+        path: '/audio/pianoMusic.mp3',
+        type: 'audio'
     }
 ];
 
