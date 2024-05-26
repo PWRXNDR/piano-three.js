@@ -45,13 +45,13 @@ export default class Preloader {
 
         this.startButton.addEventListener('click', () => {
             console.log('started');
-            // Make the audio toggle visible
             const audioToggle = document.querySelector('.audio-toggle');
-            audioToggle.style.display = 'inline'; // Change to 'inline' or 'block' to make visible
-            audioToggle.style.opacity = 1; // Fade in the toggle button
+            audioToggle.style.display = 'inline';
+            audioToggle.style.opacity = 1;
 
             if (this.app && this.app.world && this.app.world.environment) {
-                this.app.world.environment.enableAudio(); // Manage audio playback
+                this.app.world.environment.enableAudio();
+                this.app.world.environment.showText(); // Show the text after start button is clicked
             }
             this.overlay.classList.add('fade');
             this.startButton.classList.add('fadeOut');

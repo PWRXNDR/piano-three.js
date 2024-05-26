@@ -2,10 +2,8 @@ import * as THREE from "three";
 import App from "../App.js";
 import assetStore from "../Utils/AssetStore.js";
 import { PositionalAudio } from 'three';
-import { EffectComposer } from "three/examples/jsm/postprocessing/effectcomposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-
+import gsap from 'gsap';
+import CameraTextProvider from '../UI/CameraTextProvider.js';
 
 export default class Environment {
     constructor() {
@@ -17,6 +15,7 @@ export default class Environment {
         this.scene = this.app.scene;
         this.physics = this.app.world.physics;
         this.pane = this.app.gui.pane;
+        this.camera = this.app.camera;
 
         this.assetStore = assetStore.getState()
         this.environment = this.assetStore.loadedAssets.environment
@@ -28,13 +27,141 @@ export default class Environment {
             console.error("Camera instance is not available for adding AudioListener");
         }
 
+        this.positions = [
+           new THREE.Vector3(0, 20, 100), 
+           new THREE.Vector3(33.53, 21.81, 19.76),
+           new THREE.Vector3(-8.24, 5.24, -15.87), //end smooth path
+           new THREE.Vector3(9.98, 39.24, 14.38),
+           new THREE.Vector3(13.28, 13.57, 17.74),
+           new THREE.Vector3(20.32, 26.06, 33.77),
+           new THREE.Vector3(5.80, 8.45, 22.73),
+           new THREE.Vector3(-32.46, 27.03, 63.97),
+        ];
+        this.smoothPathIndices = [1, 2, 3];
+        this.currentPositionIndex = 0;
+        this.isTransitioning = false; 
+
+        this.cameraTextProvider = new CameraTextProvider();
+
         this.loadEnvironment();
         this.addLights();
         this.addSpotlight();
         this.addFog();
         this.setupAudio(false);
+        this.setupScroll();
+
+        const textContainer = document.getElementById('cameraText');
+        if (textContainer) {
+            textContainer.style.opacity = 0;
+        }
+
+        this.camera.moveToPosition(this.positions[0]);
+        //this.displayTextForPosition(0);
+        //this.animateTextIn();
     }
 
+    setupScroll() {
+        window.addEventListener('wheel', (event) => {
+            if (this.isTransitioning) return;
+
+            let nextIndex;
+
+            if (event.deltaY > 0) {
+                if (this.currentPositionIndex < this.positions.length - 1) {
+                    nextIndex = this.currentPositionIndex + 1;
+                } else {
+                    return;
+                }
+            } else {
+                if (this.currentPositionIndex > 0) {
+                    nextIndex = this.currentPositionIndex - 1;
+                } else {
+                    return;
+                }
+            }
+
+            this.animateTextOut();
+            setTimeout(() => {
+                if (this.smoothPathIndices.includes(nextIndex) && this.smoothPathIndices.includes(this.currentPositionIndex)) {
+                    this.smoothCameraTransition(nextIndex);
+                } else {
+                    this.moveToPosition(nextIndex);
+                }
+            }, 500);
+        });
+    }
+
+    moveToPosition(index) {
+        this.isTransitioning = true;
+        gsap.to(this.camera.instance.position, {
+            duration: 4,
+            x: this.positions[index].x,
+            y: this.positions[index].y,
+            z: this.positions[index].z,
+            ease: 'power1.inOut',
+            onComplete: () => {
+                this.isTransitioning = false;
+                this.displayTextForPosition(index);
+                this.animateTextIn();
+            }
+        });
+        this.currentPositionIndex = index;
+    }
+
+
+    smoothCameraTransition(nextIndex) {
+        this.isTransitioning = true;
+        const path = this.positions.slice(Math.min(this.currentPositionIndex, nextIndex), Math.max(this.currentPositionIndex, nextIndex) + 1);
+        const timeline = gsap.timeline({
+            onComplete: () => {
+                this.isTransitioning = false;
+                this.displayTextForPosition(nextIndex);
+                this.animateTextIn();
+            }
+        });
+
+        path.forEach((position, i) => {
+            timeline.to(this.camera.instance.position, {
+                duration: 3.5, // Adjust duration as needed
+                x: position.x,
+                y: position.y,
+                z: position.z,
+                ease: 'expoScale(0.5, 7, none)' // Using expoScale ease for smooth effect
+            }, i * 0); // Adjust stagger timing as needed
+        });
+
+        this.currentPositionIndex = nextIndex;
+    }
+
+    displayTextForPosition(index) {
+        const textInfo = this.cameraTextProvider.getTextForPosition(index);
+        const titleElement = document.getElementById('cameraTextTitle');
+        const descriptionElement = document.getElementById('cameraTextDescription');
+        const textContainer = document.getElementById('cameraText');
+
+        if (titleElement && descriptionElement && textContainer) {
+            titleElement.innerHTML = textInfo.title;
+            descriptionElement.innerHTML = textInfo.description;
+            gsap.to(textContainer, { opacity: 1, duration: 1 });
+        }
+    }
+
+    animateTextIn() {
+        const letters = document.querySelectorAll('.letter');
+        letters.forEach((letter, index) => {
+            gsap.fromTo(letter,
+                { opacity: 0 },
+                { opacity: 1, duration: 1, delay: index * 0.2 }
+            );
+        });
+    }
+
+    animateTextOut() {
+        const letters = document.querySelectorAll('.letter');
+        letters.forEach((letter, index) => {
+            gsap.to(letter, { opacity: 0, duration: 1, delay: index * 0.2 });
+        });
+    }
 
     setupAudio(play = false) {
         const pianoMusic = new PositionalAudio(this.audioListener);
@@ -89,8 +216,8 @@ export default class Environment {
         let allObjects = []; // Array to store names of all objects
 
         //environmentScene.traverse((child) => {
-          //  console.log(child.name);
-          //  allObjects.push(child.name);
+        //    console.log(child.name);
+        //    allObjects.push(child.name);
         //});
 
         const godRaysMaterial = new THREE.MeshBasicMaterial({
@@ -190,7 +317,7 @@ export default class Environment {
                     child.material = new THREE.MeshStandardMaterial({
                         color: 0xbbb39b,
                         metalness: 0,
-                        roughness: 0.5,
+                        roughness: 0.6,
                         envMap: cubemap
                     });
                 }
@@ -311,6 +438,11 @@ export default class Environment {
         const density = 0.001;    // Control the density, smaller values for lighter fog
 
         this.scene.fog = new THREE.FogExp2(color, density);
+    }
+
+    showText() {
+        this.displayTextForPosition(this.currentPositionIndex);
+        this.animateTextIn();
     }
 
 }
