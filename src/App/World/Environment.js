@@ -122,12 +122,12 @@ export default class Environment {
 
         path.forEach((position, i) => {
             timeline.to(this.camera.instance.position, {
-                duration: 3.5, // Adjust duration as needed
+                duration: 3.5, 
                 x: position.x,
                 y: position.y,
                 z: position.z,
-                ease: 'expoScale(0.5, 7, none)' // Using expoScale ease for smooth effect
-            }, i * 0); // Adjust stagger timing as needed
+                ease: 'expoScale(0.5, 7, none)' 
+            }, i * 0); 
         });
 
         this.currentPositionIndex = nextIndex;
@@ -205,7 +205,7 @@ export default class Environment {
         if (this.pianoMusic.isPlaying) {
             this.pianoMusic.pause();
         } else {
-            this.enableAudio(); // Reuses the enableAudio method to play if it was paused
+            this.enableAudio(); 
         }
     }
 
@@ -213,7 +213,7 @@ export default class Environment {
         // load environment here
         const environmentScene = this.environment.scene;
         this.scene.add(environmentScene);
-        let allObjects = []; // Array to store names of all objects
+        let allObjects = []; 
 
         //environmentScene.traverse((child) => {
         //    console.log(child.name);
@@ -250,8 +250,8 @@ export default class Environment {
                 if (child.name === 'Plane061') { 
                     child.material = new THREE.MeshStandardMaterial({
                         color: 0x000000,
-                        metalness: 0.2, // metalness to control reflectivity
-                        roughness: 0.05, // lower values give sharper reflections
+                        metalness: 0.2, 
+                        roughness: 0.05, 
                         envMap: cubemap 
                     });
                 }
@@ -346,10 +346,10 @@ export default class Environment {
 
         environmentScene.traverse((child) => {
             if (child.name === 'floor') { 
-                // Access and modify the existing material
+                
                 if (child.material) {
-                    child.material.metalness = 0; // Adjust as necessary
-                    child.material.roughness = 0.05; // Adjust as necessary
+                    child.material.metalness = 0; 
+                    child.material.roughness = 0.05; 
                 }
             }
         });
@@ -414,7 +414,7 @@ export default class Environment {
         directionalLight.shadow.camera.far = 500;
         this.scene.add(directionalLight);
 
-        // Optional: Additional point lights or soft spotlights
+        // soft spotlights
         const pointLight = new THREE.PointLight(0xfffb70, 0.1, 100, 1);
         pointLight.position.set(-10, 10, -10);
         this.scene.add(pointLight);
@@ -422,7 +422,7 @@ export default class Environment {
 
     addSpotlight() {
         const spotlight = new THREE.SpotLight(0xfffb70, 0.5, 0, Math.PI / 8, 0.5, 2);
-        spotlight.position.set(10, 60, 10); // Adjust as necessary
+        spotlight.position.set(10, 60, 10); 
         spotlight.target.position.set(10, 0, 10);
         this.scene.add(spotlight.target);
         spotlight.castShadow = true;
@@ -434,8 +434,8 @@ export default class Environment {
     }
 
     addFog() {
-        const color = 0x63a9ff;  // Choose a color that blends well with your scene
-        const density = 0.001;    // Control the density, smaller values for lighter fog
+        const color = 0x63a9ff;  
+        const density = 0.001;    
 
         this.scene.fog = new THREE.FogExp2(color, density);
     }
