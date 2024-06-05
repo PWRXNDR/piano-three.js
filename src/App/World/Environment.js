@@ -63,32 +63,55 @@ export default class Environment {
     setupScroll() {
         window.addEventListener('wheel', (event) => {
             if (this.isTransitioning) return;
-
-            let nextIndex;
-
-            if (event.deltaY > 0) {
-                if (this.currentPositionIndex < this.positions.length - 1) {
-                    nextIndex = this.currentPositionIndex + 1;
-                } else {
-                    return;
-                }
-            } else {
-                if (this.currentPositionIndex > 0) {
-                    nextIndex = this.currentPositionIndex - 1;
-                } else {
-                    return;
-                }
-            }
-
-            this.animateTextOut();
-            setTimeout(() => {
-                if (this.smoothPathIndices.includes(nextIndex) && this.smoothPathIndices.includes(this.currentPositionIndex)) {
-                    this.smoothCameraTransition(nextIndex);
-                } else {
-                    this.moveToPosition(nextIndex);
-                }
-            }, 500);
+            this.handleScroll(event.deltaY > 0);
         });
+
+        let touchStartY = 0;
+        let touchEndY = 0;
+
+        window.addEventListener('touchstart', (event) => {
+            touchStartY = event.changedTouches[0].screenY;
+        });
+
+        window.addEventListener('touchend', (event) => {
+            touchEndY = event.changedTouches[0].screenY;
+            if (this.isTransitioning) return;
+
+            if (touchStartY > touchEndY) {
+                // Swiped up
+                this.handleScroll(true);
+            } else {
+                // Swiped down
+                this.handleScroll(false);
+            }
+        });
+    }
+
+    handleScroll(isScrollingDown) {
+        let nextIndex;
+
+        if (isScrollingDown) {
+            if (this.currentPositionIndex < this.positions.length - 1) {
+                nextIndex = this.currentPositionIndex + 1;
+            } else {
+                return;
+            }
+        } else {
+            if (this.currentPositionIndex > 0) {
+                nextIndex = this.currentPositionIndex - 1;
+            } else {
+                return;
+            }
+        }
+
+        this.animateTextOut();
+        setTimeout(() => {
+            if (this.smoothPathIndices.includes(nextIndex) && this.smoothPathIndices.includes(this.currentPositionIndex)) {
+                this.smoothCameraTransition(nextIndex);
+            } else {
+                this.moveToPosition(nextIndex);
+            }
+        }, 500);
     }
 
     moveToPosition(index) {
